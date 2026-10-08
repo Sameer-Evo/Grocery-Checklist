@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="A simple, fast grocery checklist app that works offline">
+  <meta name="theme-color" content="#4f46e5">
+  
+  <!-- Apple Web App Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Grocery List">
+  <link rel="apple-touch-icon" href="icons/icon-152.png">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <title>Grocery Checklist</title>
+  <link rel="shortcut icon" href="icons/icon.jpg" type="image/x-icon">
+  
+  <style>
+    /* ===== CSS Variables ===== */
+    :root {
+      /* Light Theme */
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f1f5f9;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-tertiary: #94a3b8;
+      --border-color: #e2e8f0;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-light: #eef2ff;
+      --success: #22c55e;
+      --success-light: #dcfce7;
+      --danger: #ef4444;
+      --danger-light: #fee2e2;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --transition: 0.2s ease;
+      --safe-area-top: env(safe-area-inset-top, 0px);
+      --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-area-left: env(safe-area-inset-left, 0px);
+      --safe-area-right: env(safe-area-inset-right, 0px);
+    }
+
+    /* Dark Theme */
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+      --border-color: #334155;
+      --accent-light: #312e81;
+      --success-light: #14532d;
+      --danger-light: #7f1d1d;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      padding-top: var(--safe-area-top);
+      padding-bottom: var(--safe-area-bottom);
+      padding-left: var(--safe-area-left);
+      padding-right: var(--safe-area-right);
+      transition: background-color var(--transition), color var(--transition);
+    }
+
+    button {
+      font-family: inherit;
+      font-size: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+    }
+
+    input, select {
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    /* ===== Layout ===== */
+    .app-container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom));
+      min-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom));
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      transition: all var(--transition);
+      color: var(--text-secondary);
+    }
+
+    .icon-btn:hover, .icon-btn:focus {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .icon-btn:focus-visible {
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .icon-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* Install Button */
+    .install-btn {
+      background-color: var(--accent);
+      color: white;
+      border: none;
+    }
+
+    .install-btn:hover {
+      background-color: var(--accent-hover);
+      color: white;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ===== Statistics Dashboard ===== */
+    .stats-dashboard {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 12px;
+      text-align: center;
+      transition: all var(--transition);
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1.2;
+    }
+
+    .stat-card:nth-child(2) .stat-value {
+      color: var(--text-primary);
+    }
+
+    .stat-card:nth-child(3) .stat-value {
+      color: var(--success);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* ===== Add Item Form ===== */
+    .add-form {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .form-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .input-group {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px 14px;
+      background-color: var(--bg-tertiary);
+      border: 2px solid transparent;
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      transition: all var(--transition);
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background-color: var(--bg-secondary);
+    }
+
+    .input-group input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .qty-input {
+      flex: 0 0 80px;
+    }
+
+    .unit-select-group {
+      flex: 0 0 110px;
+    }
+
+    /* ===== Custom Dropdown ===== */
+    .custom-select {
+      position: relative;
+    }
+
+    .select-trigger {
+      width: 100%;
+      padding: 12px 14px;
+      background-color: var(--bg-tertiary);
+      border: 2px solid transparent;
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: all var(--transition);
+      cursor: pointer;
+    }
+
+    .select-trigger:focus {
+      outline: none;
+      border-color: var(--accent);
+      background-color: var(--bg-secondary);
+    }
+
+    .select-trigger:focus-visible {
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .select-trigger[aria-expanded="true"] {
+      border-color: var(--accent);
+      background-color: var(--bg-secondary);
+    }
+
+    .select-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .select-icon {
+      font-size: 1rem;
+    }
+
+    .select-arrow {
+      width: 16px;
+      height: 16px;
+      transition: transform var(--transition);
+      color: var(--text-tertiary);
+    }
+
+    .select-trigger[aria-expanded="true"] .select-arrow {
+      transform: rotate(180deg);
+    }
+
+    .select-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all var(--transition);
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .select-dropdown.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .select-option {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all var(--transition);
+      color: var(--text-primary);
+    }
+
+    .select-option:hover,
+    .select-option:focus {
+      background-color: var(--bg-tertiary);
+      outline: none;
+    }
+
+    .select-option.selected {
+      background-color: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .select-option:first-child {
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+
+    .select-option:last-child {
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    }
+
+    /* ===== Add Button ===== */
+    .add-btn {
+      width: 100%;
+      padding: 14px;
+      background-color: var(--accent);
+      color: white;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all var(--transition);
+    }
+
+    .add-btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .add-btn:focus-visible {
+      box-shadow: 0 0 0 3px var(--accent-light);
+      outline: none;
+    }
+
+    .add-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ===== Grocery List ===== */
+    .list-section {
+      flex: 1;
+      margin-bottom: 20px;
+    }
+
+    .list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .list-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .clear-btn {
+      font-size: 0.875rem;
+      color: var(--danger);
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition);
+    }
+
+    .clear-btn:hover {
+      background-color: var(--danger-light);
+    }
+
+    .clear-btn:focus-visible {
+      box-shadow: 0 0 0 3px var(--danger-light);
+      outline: none;
+    }
+
+    .grocery-list {
+      list-style: none;
+    }
+
+    /* ===== Grocery Item ===== */
+    .grocery-item {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all var(--transition);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .grocery-item.completed {
+      opacity: 0.7;
+      background-color: var(--bg-tertiary);
+    }
+
+    .grocery-item.completed .item-name {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+    }
+
+    /* Custom Checkbox */
+    .checkbox-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .checkbox-input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .checkbox-custom {
+      width: 26px;
+      height: 26px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition);
+      cursor: pointer;
+    }
+
+    .checkbox-input:focus-visible + .checkbox-custom {
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .checkbox-input:checked + .checkbox-custom {
+      background-color: var(--success);
+      border-color: var(--success);
+    }
+
+    .checkbox-custom svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all var(--transition);
+    }
+
+    .checkbox-input:checked + .checkbox-custom svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .item-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-name {
+      font-weight: 500;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    .item-meta {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .delete-btn {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      color: var(--text-tertiary);
+      transition: all var(--transition);
+    }
+
+    .delete-btn:hover {
+      background-color: var(--danger-light);
+      color: var(--danger);
+    }
+
+    .delete-btn:focus-visible {
+      box-shadow: 0 0 0 3px var(--danger-light);
+      outline: none;
+    }
+
+    .delete-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ===== Section Divider ===== */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 16px;
+      color: var(--text-tertiary);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background-color: var(--border-color);
+    }
+
+    /* ===== Empty State ===== */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-secondary);
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      opacity: 0.8;
+    }
+
+    .empty-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .empty-hint {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Celebration Banner ===== */
+    .celebration-banner {
+      background: linear-gradient(135deg, var(--success), #10b981);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      animation: celebrateIn 0.5s ease;
+    }
+
+    @keyframes celebrateIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .celebration-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .celebration-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 4px;
+    }
+
+    .celebration-text {
+      font-size: 0.9375rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* ===== Share Modal ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all var(--transition);
+      padding: var(--safe-area-bottom) var(--safe-area-left) var(--safe-area-bottom) var(--safe-area-right);
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background-color: var(--bg-secondary);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      padding-bottom: var(--safe-area-bottom);
+    }
+
+    .modal-overlay.open .modal-content {
+      transform: translateY(0);
+    }
+
+    @media (min-width: 640px) {
+      .modal-overlay {
+        align-items: center;
+        padding: 24px;
+      }
+
+      .modal-content {
+        border-radius: var(--radius-lg);
+        max-height: 80vh;
+        transform: translateY(20px);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 20px 0;
+      margin-bottom: 8px;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-full);
+      color: var(--text-secondary);
+      transition: all var(--transition);
+    }
+
+    .modal-close:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .modal-close svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .modal-body {
+      padding: 16px 20px 24px;
+    }
+
+    .share-options {
+      display: grid;
+      gap: 12px;
+    }
+
+    .share-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      background-color: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      transition: all var(--transition);
+      text-align: left;
+      width: 100%;
+    }
+
+    .share-btn:hover {
+      background-color: var(--border-color);
+    }
+
+    .share-btn:focus-visible {
+      box-shadow: 0 0 0 3px var(--accent-light);
+      outline: none;
+    }
+
+    .share-btn-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .share-btn-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .share-btn-icon.native {
+      background-color: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .share-btn-icon.whatsapp {
+      background-color: #dcfce7;
+      color: #22c55e;
+    }
+
+    [data-theme="dark"] .share-btn-icon.whatsapp {
+      background-color: #14532d;
+    }
+
+    .share-btn-icon.copy {
+      background-color: #fef3c7;
+      color: #f59e0b;
+    }
+
+    [data-theme="dark"] .share-btn-icon.copy {
+      background-color: #78350f;
+    }
+
+    .share-btn-icon.link {
+      background-color: #e0e7ff;
+      color: #6366f1;
+    }
+
+    [data-theme="dark"] .share-btn-icon.link {
+      background-color: #312e81;
+    }
+
+    .share-btn-text {
+      flex: 1;
+    }
+
+    .share-btn-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .share-btn-desc {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Toast Notifications ===== */
+    .toast-container {
+      position: fixed;
+      bottom: calc(24px + var(--safe-area-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      width: calc(100% - 32px);
+      max-width: 400px;
+    }
+
+    .toast {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: toastIn 0.3s ease;
+      pointer-events: auto;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .toast.hiding {
+      animation: toastOut 0.3s ease forwards;
+    }
+
+    @keyframes toastOut {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+      }
+    }
+
+    .toast-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toast.success .toast-icon {
+      color: var(--success);
+    }
+
+    .toast.error .toast-icon {
+      color: var(--danger);
+    }
+
+    .toast-message {
+      flex: 1;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+    }
+
+    /* ===== Confirm Dialog ===== */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1500;
+      opacity: 0;
+      visibility: hidden;
+      transition: all var(--transition);
+      padding: 24px;
+    }
+
+    .confirm-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .confirm-dialog {
+      background-color: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      transform: scale(0.95);
+      transition: transform var(--transition);
+    }
+
+    .confirm-overlay.open .confirm-dialog {
+      transform: scale(1);
+    }
+
+    .confirm-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      color: var(--danger);
+    }
+
+    .confirm-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .confirm-message {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .confirm-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      transition: all var(--transition);
+    }
+
+    .confirm-btn.cancel {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .confirm-btn.cancel:hover {
+      background-color: var(--border-color);
+    }
+
+    .confirm-btn.danger {
+      background-color: var(--danger);
+      color: white;
+    }
+
+    .confirm-btn.danger:hover {
+      background-color: #dc2626;
+    }
+
+    .confirm-btn:focus-visible {
+      box-shadow: 0 0 0 3px var(--accent-light);
+      outline: none;
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      color: var(--text-tertiary);
+      font-size: 0.8125rem;
+      border-top: 1px solid var(--border-color);
+      margin-top: auto;
+    }
+
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== Scrollbar Styling ===== */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+
+    /* ===== Focus Visible Polyfill ===== */
+    .focus-visible {
+      box-shadow: 0 0 0 3px var(--accent-light);
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="app-title">🛒 Grocery List</h1>
+      </div>
+      <div class="header-actions">
+        <button 
+          type="button" 
+          id="installBtn" 
+          class="icon-btn install-btn hidden" 
+          aria-label="Install App"
+          title="Install App"
+        >
+          <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </button>
+        <button 
+          type="button" 
+          id="shareBtn" 
+          class="icon-btn" 
+          aria-label="Share List"
+          title="Share List"
+        >
+          <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+        </button>
+        <button 
+          type="button" 
+          id="themeToggle" 
+          class="icon-btn" 
+          aria-label="Toggle Theme"
+          title="Toggle Theme"
+        >
+          <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" id="themeIcon">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Statistics Dashboard -->
+    <section class="stats-dashboard" aria-label="Shopping Statistics">
+      <div class="stat-card">
+        <div class="stat-value" id="totalItems">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="remainingItems">0</div>
+        <div class="stat-label">Remaining</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="completedItems">0</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </section>
+
+    <!-- Add Item Form -->
+    <form class="add-form" id="addForm" autocomplete="off">
+      <div class="form-row">
+        <div class="input-group">
+          <label for="itemName">Item Name</label>
+          <input 
+            type="text" 
+            id="itemName" 
+            name="itemName"
+            placeholder="e.g., Milk, Bread, Eggs"
+            required
+            maxlength="100"
+            aria-required="true"
+          >
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="input-group qty-input">
+          <label for="itemQty">Qty</label>
+          <input 
+            type="number" 
+            id="itemQty" 
+            name="itemQty"
+            placeholder="1"
+            min="0"
+            max="9999"
+            step="any"
+          >
+        </div>
+        <div class="input-group unit-select-group">
+          <label id="unitLabel">Unit</label>
+          <div class="custom-select" id="unitSelect">
+            <button 
+              type="button"
+              class="select-trigger" 
+              id="unitTrigger"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-labelledby="unitLabel unitTrigger"
+            >
+              <span class="select-value">
+                <span class="select-icon">📦</span>
+                <span id="selectedUnitText">pcs</span>
+              </span>
+              <svg class="select-arrow" xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div 
+              class="select-dropdown" 
+              id="unitDropdown"
+              role="listbox"
+              aria-labelledby="unitLabel"
+              tabindex="-1"
+            >
+              <!-- Options populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <button type="submit" class="add-btn">
+          <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Add Item
+        </button>
+      </div>
+    </form>
+
+    <!-- Celebration Banner -->
+    <div class="celebration-banner hidden" id="celebrationBanner" role="status" aria-live="polite">
+      <div class="celebration-icon">🎉</div>
+      <div class="celebration-title">Shopping Complete!</div>
+      <div class="celebration-text">You've checked off everything on your list.</div>
+    </div>
+
+    <!-- Grocery List Section -->
+    <section class="list-section" aria-label="Grocery Items">
+      <div class="list-header" id="listHeader">
+        <h2 class="list-title">Your Items</h2>
+        <button 
+          type="button" 
+          id="clearAllBtn" 
+          class="clear-btn hidden"
+          aria-label="Clear all items"
+        >
+          Clear All
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🛒</div>
+        <div class="empty-title">Your list is empty</div>
+        <div class="empty-hint">Add items above to get started!</div>
+      </div>
+
+      <!-- Active Items -->
+      <ul class="grocery-list" id="activeList" aria-label="Active items">
+        <!-- Items populated by JS -->
+      </ul>
+
+      <!-- Completed Section -->
+      <div class="section-divider hidden" id="completedDivider">
+        <span>Completed</span>
+      </div>
+      <ul class="grocery-list" id="completedList" aria-label="Completed items">
+        <!-- Items populated by JS -->
+      </ul>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      Designed and Developed by <strong>Sameer Mohammad</strong>
+    </footer>
+  </div>
+
+  <!-- Share Modal -->
+  <div class="modal-overlay" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="shareModalTitle">Share List</h2>
+        <button type="button" class="modal-close" id="closeShareModal" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="share-options">
+          <!-- Native Share (shown when available) -->
+          <button type="button" class="share-btn hidden" id="nativeShareBtn">
+            <div class="share-btn-icon native">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </div>
+            <div class="share-btn-text">
+              <div class="share-btn-title">Share</div>
+              <div class="share-btn-desc">Share via your device</div>
+            </div>
+          </button>
+
+          <!-- WhatsApp -->
+          <button type="button" class="share-btn" id="whatsappShareBtn">
+            <div class="share-btn-icon whatsapp">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+            </div>
+            <div class="share-btn-text">
+              <div class="share-btn-title">WhatsApp</div>
+              <div class="share-btn-desc">Send via WhatsApp</div>
+            </div>
+          </button>
+
+          <!-- Copy List -->
+          <button type="button" class="share-btn" id="copyListBtn">
+            <div class="share-btn-icon copy">
+              <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div class="share-btn-text">
+              <div class="share-btn-title">Copy List</div>
+              <div class="share-btn-desc">Copy as formatted text</div>
+            </div>
+          </button>
+
+          <!-- Copy Link -->
+          <button type="button" class="share-btn" id="copyLinkBtn">
+            <div class="share-btn-icon link">
+              <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            <div class="share-btn-text">
+              <div class="share-btn-title">Copy Link</div>
+              <div class="share-btn-desc">Copy shareable link</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog -->
+  <div class="confirm-overlay" id="confirmOverlay" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+    <div class="confirm-dialog">
+      <svg class="confirm-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <h3 class="confirm-title" id="confirmTitle">Confirm Action</h3>
+      <p class="confirm-message" id="confirmMessage">Are you sure you want to proceed?</p>
+      <div class="confirm-actions">
+        <button type="button" class="confirm-btn cancel" id="confirmCancel">Cancel</button>
+        <button type="button" class="confirm-btn danger" id="confirmOk">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    /**
+     * Grocery Checklist PWA
+     * A production-ready Progressive Web App for managing grocery lists
+     */
+
+    (function() {
+      'use strict';
+
+      // ===== Constants =====
+      const STORAGE_KEY = 'groceryChecklist';
+      const THEME_KEY = 'groceryTheme';
+
+      // Unit options with icons
+      const UNITS = [
+        { value: 'pcs', label: 'pcs', icon: '📦' },
+        { value: 'kg', label: 'kg', icon: '⚖️' },
+        { value: 'g', label: 'g', icon: '⚖️' },
+        { value: 'ltr', label: 'ltr', icon: '🥛' },
+        { value: 'ml', label: 'ml', icon: '💧' },
+        { value: 'dz', label: 'dz', icon: '🥚' },
+        { value: 'pack', label: 'pack', icon: '📦' },
+        { value: 'box', label: 'box', icon: '📦' }
+      ];
+
+      // ===== State =====
+      let items = [];
+      let selectedUnit = 'pcs';
+      let deferredPrompt = null;
+      let confirmCallback = null;
+
+      // ===== DOM Elements =====
+      const elements = {
+        addForm: document.getElementById('addForm'),
+        itemName: document.getElementById('itemName'),
+        itemQty: document.getElementById('itemQty'),
+        unitTrigger: document.getElementById('unitTrigger'),
+        unitDropdown: document.getElementById('unitDropdown'),
+        selectedUnitText: document.getElementById('selectedUnitText'),
+        activeList: document.getElementById('activeList'),
+        completedList: document.getElementById('completedList'),
+        completedDivider: document.getElementById('completedDivider'),
+        emptyState: document.getElementById('emptyState'),
+        clearAllBtn: document.getElementById('clearAllBtn'),
+        totalItems: document.getElementById('totalItems'),
+        remainingItems: document.getElementById('remainingItems'),
+        completedItems: document.getElementById('completedItems'),
+        celebrationBanner: document.getElementById('celebrationBanner'),
+        themeToggle: document.getElementById('themeToggle'),
+        themeIcon: document.getElementById('themeIcon'),
+        shareBtn: document.getElementById('shareBtn'),
+        shareModal: document.getElementById('shareModal'),
+        closeShareModal: document.getElementById('closeShareModal'),
+        nativeShareBtn: document.getElementById('nativeShareBtn'),
+        whatsappShareBtn: document.getElementById('whatsappShareBtn'),
+        copyListBtn: document.getElementById('copyListBtn'),
+        copyLinkBtn: document.getElementById('copyLinkBtn'),
+        installBtn: document.getElementById('installBtn'),
+        confirmOverlay: document.getElementById('confirmOverlay'),
+        confirmTitle: document.getElementById('confirmTitle'),
+        confirmMessage: document.getElementById('confirmMessage'),
+        confirmCancel: document.getElementById('confirmCancel'),
+        confirmOk: document.getElementById('confirmOk'),
+        toastContainer: document.getElementById('toastContainer')
+      };
+
+      // ===== Utility Functions =====
+
+      /**
+       * Escapes HTML to prevent XSS attacks
+       */
+      function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      /**
+       * Generates a unique ID
+       */
+      function generateId() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+
+      /**
+       * Saves items to localStorage
+       */
+      function saveItems() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        } catch (e) {
+          console.error('Failed to save items:', e);
+          showToast('Failed to save items', 'error');
+        }
+      }
+
+      /**
+       * Loads items from localStorage
+       */
+      function loadItems() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            items = JSON.parse(stored);
+            // Validate items structure
+            items = items.filter(item => 
+              item && 
+              typeof item.id === 'string' && 
+              typeof item.name === 'string' &&
+              typeof item.done === 'boolean'
+            );
+          }
+        } catch (e) {
+          console.error('Failed to load items:', e);
+          items = [];
+        }
+      }
+
+      // ===== Toast Notifications =====
+
+      /**
+       * Shows a toast notification
+       */
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const iconSvg = type === 'success' 
+          ? '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />'
+          : '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />';
+        
+        toast.innerHTML = `
+          <svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            ${iconSvg}
+          </svg>
+          <span class="toast-message">${escapeHtml(message)}</span>
+        `;
+        
+        elements.toastContainer.appendChild(toast);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+          toast.classList.add('hiding');
+          setTimeout(() => {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, 300);
+        }, 3000);
+      }
+
+      // ===== Confirm Dialog =====
+
+      /**
+       * Shows a confirm dialog
+       */
+      function showConfirm(title, message, okText = 'Delete') {
+        return new Promise((resolve) => {
+          elements.confirmTitle.textContent = title;
+          elements.confirmMessage.textContent = message;
+          elements.confirmOk.textContent = okText;
+          elements.confirmOverlay.classList.add('open');
+          elements.confirmOk.focus();
+          confirmCallback = resolve;
+        });
+      }
+
+      /**
+       * Closes the confirm dialog
+       */
+      function closeConfirm(result) {
+        elements.confirmOverlay.classList.remove('open');
+        if (confirmCallback) {
+          confirmCallback(result);
+          confirmCallback = null;
+        }
+      }
+
+      // ===== Theme Management =====
+
+      /**
+       * Sets the theme
+       */
+      function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem(THEME_KEY, theme);
+        updateThemeIcon(theme);
+      }
+
+      /**
+       * Updates the theme icon
+       */
+      function updateThemeIcon(theme) {
+        const iconPath = theme === 'dark'
+          ? '<path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />'
+          : '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />';
+        
+        elements.themeIcon.innerHTML = iconPath;
+      }
+
+      /**
+       * Toggles the theme
+       */
+      function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+      }
+
+      /**
+       * Initializes the theme from localStorage or system preference
+       */
+      function initTheme() {
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          setTheme(prefersDark ? 'dark' : 'light');
+        }
+      }
+
+      // ===== Custom Select Dropdown =====
+
+      /**
+       * Populates the unit dropdown
+       */
+      function populateUnitDropdown() {
+        elements.unitDropdown.innerHTML = UNITS.map((unit, index) => `
+          <div 
+            class="select-option ${unit.value === selectedUnit ? 'selected' : ''}" 
+            data-value="${unit.value}"
+            role="option"
+            aria-selected="${unit.value === selectedUnit}"
+            tabindex="0"
+          >
+            <span class="select-icon">${unit.icon}</span>
+            <span>${unit.label}</span>
+          </div>
+        `).join('');
+      }
+
+      /**
+       * Updates the selected unit display
+       */
+      function updateSelectedUnit(value) {
+        const unit = UNITS.find(u => u.value === value);
+        if (unit) {
+          selectedUnit = value;
+          elements.selectedUnitText.textContent = unit.label;
+          
+          // Update icon in trigger
+          const iconSpan = elements.unitTrigger.querySelector('.select-icon');
+          if (iconSpan) {
+            iconSpan.textContent = unit.icon;
+          }
+          
+          // Update selected state in dropdown
+          elements.unitDropdown.querySelectorAll('.select-option').forEach(opt => {
+            const isSelected = opt.dataset.value === value;
+            opt.classList.toggle('selected', isSelected);
+            opt.setAttribute('aria-selected', isSelected);
+          });
+        }
+      }
+
+      /**
+       * Opens the unit dropdown
+       */
+      function openUnitDropdown() {
+        elements.unitTrigger.setAttribute('aria-expanded', 'true');
+        elements.unitDropdown.classList.add('open');
+        
+        // Focus the selected option
+        const selectedOption = elements.unitDropdown.querySelector('.selected');
+        if (selectedOption) {
+          selectedOption.focus();
+        }
+      }
+
+      /**
+       * Closes the unit dropdown
+       */
+      function closeUnitDropdown() {
+        elements.unitTrigger.setAttribute('aria-expanded', 'false');
+        elements.unitDropdown.classList.remove('open');
+      }
+
+      /**
+       * Toggles the unit dropdown
+       */
+      function toggleUnitDropdown() {
+        const isOpen = elements.unitTrigger.getAttribute('aria-expanded') === 'true';
+        if (isOpen) {
+          closeUnitDropdown();
+        } else {
+          openUnitDropdown();
+        }
+      }
+
+      // ===== Statistics =====
+
+      /**
+       * Updates the statistics display
+       */
+      function updateStats() {
+        const total = items.length;
+        const completed = items.filter(item => item.done).length;
+        const remaining = total - completed;
+        
+        elements.totalItems.textContent = total;
+        elements.remainingItems.textContent = remaining;
+        elements.completedItems.textContent = completed;
+        
+        // Show celebration if all items completed and there are items
+        const shouldCelebrate = total > 0 && remaining === 0;
+        elements.celebrationBanner.classList.toggle('hidden', !shouldCelebrate);
+        
+        if (shouldCelebrate && !elements.celebrationBanner.dataset.celebrated) {
+          elements.celebrationBanner.dataset.celebrated = 'true';
+          showToast('🎉 All items checked off!', 'success');
+        } else if (!shouldCelebrate) {
+          delete elements.celebrationBanner.dataset.celebrated;
+        }
+      }
+
+      // ===== List Rendering =====
+
+      /**
+       * Creates a grocery item element
+       */
+      function createItemElement(item) {
+        const li = document.createElement('li');
+        li.className = `grocery-item ${item.done ? 'completed' : ''}`;
+        li.dataset.id = item.id;
+        
+        // Format quantity display
+        let metaText = '';
+        if (item.qty !== null && item.qty !== '' && !isNaN(item.qty)) {
+          const unit = UNITS.find(u => u.value === item.unit);
+          metaText = `${item.qty} ${unit ? unit.label : item.unit}`;
+        }
+        
+        li.innerHTML = `
+          <label class="checkbox-wrapper">
+            <input 
+              type="checkbox" 
+              class="checkbox-input" 
+              ${item.done ? 'checked' : ''}
+              aria-label="Mark ${escapeHtml(item.name)} as ${item.done ? 'incomplete' : 'complete'}"
+            >
+            <span class="checkbox-custom">
+              <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+          </label>
+          <div class="item-details">
+            <div class="item-name">${escapeHtml(item.name)}</div>
+            ${metaText ? `<div class="item-meta">${escapeHtml(metaText)}</div>` : ''}
+          </div>
+          <button type="button" class="delete-btn" aria-label="Delete ${escapeHtml(item.name)}">
+            <svg xmlns="[w3.org](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        `;
+        
+        return li;
+      }
+
+      /**
+       * Renders the grocery list
+       */
+      function renderList() {
+        const activeItems = items.filter(item => !item.done);
+        const completedItems = items.filter(item => item.done);
+        
+        // Clear lists
+        elements.activeList.innerHTML = '';
+        elements.completedList.innerHTML = '';
+        
+        // Render active items
+        activeItems.forEach(item => {
+          elements.activeList.appendChild(createItemElement(item));
+        });
+        
+        // Render completed items
+        completedItems.forEach(item => {
+          elements.completedList.appendChild(createItemElement(item));
+        });
+        
+        // Toggle visibility
+        const hasItems = items.length > 0;
+        elements.emptyState.classList.toggle('hidden', hasItems);
+        elements.clearAllBtn.classList.toggle('hidden', !hasItems);
+        elements.completedDivider.classList.toggle('hidden', completedItems.length === 0);
+        
+        updateStats();
+      }
+
+      // ===== Item Operations =====
+
+      /**
+       * Adds a new item
+       */
+      function addItem(name, qty, unit) {
+        // Check for duplicates (case-insensitive)
+        const normalizedName = name.trim().toLowerCase();
+        const isDuplicate = items.some(item => item.name.toLowerCase() === normalizedName);
+        
+        if (isDuplicate) {
+          showToast('Item already exists in your list', 'error');
+          return false;
+        }
+        
+        const newItem = {
+          id: generateId(),
+          name: name.trim(),
+          qty: qty !== '' && !isNaN(qty) ? parseFloat(qty) : null,
+          unit: unit,
+          done: false
+        };
+        
+        items.unshift(newItem);
+        saveItems();
+        renderList();
+        showToast('Item added successfully', 'success');
+        return true;
+      }
+
+      /**
+       * Toggles an item's completion status
+       */
+      function toggleItem(id) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+          item.done = !item.done;
+          saveItems();
+          renderList();
+        }
+      }
+
+      /**
+       * Deletes an item
+       */
+      async function deleteItem(id) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        
+        const confirmed = await showConfirm(
+          'Delete Item',
+          `Are you sure you want to delete "${item.name}"?`,
+          'Delete'
+        );
+        
+        if (confirmed) {
+          items = items.filter(i => i.id !== id);
+          saveItems();
+          renderList();
+          showToast('Item deleted', 'success');
+        }
+      }
+
+      /**
+       * Clears all items
+       */
+      async function clearAllItems() {
+        if (items.length === 0) return;
+        
+        const confirmed = await showConfirm(
+          'Clear All Items',
+          'Are you sure you want to delete all items? This cannot be undone.',
+          'Clear All'
+        );
+        
+        if (confirmed) {
+          items = [];
+          saveItems();
+          renderList();
+          showToast('All items cleared', 'success');
+        }
+      }
+
+      // ===== Share Functionality =====
+
+      /**
+       * Generates a formatted text list
+       */
+      function generateListText() {
+        if (items.length === 0) return 'My grocery list is empty.';
+        
+        let text = '🛒 My Grocery List\n';
+        text += '─'.repeat(20) + '\n';
+        
+        const activeItems = items.filter(i => !i.done);
+        const completedItems = items.filter(i => i.done);
+        
+        activeItems.forEach(item => {
+          let line = `☐ ${item.name}`;
+          if (item.qty !== null) {
+            line += ` (${item.qty} ${item.unit})`;
+          }
+          text += line + '\n';
+        });
+        
+        if (completedItems.length > 0) {
+          text += '\n✓ Completed:\n';
+          completedItems.forEach(item => {
+            let line = `☑ ${item.name}`;
+            if (item.qty !== null) {
+              line += ` (${item.qty} ${item.unit})`;
+            }
+            text += line + '\n';
+          });
+        }
+        
+        return text.trim();
+      }
+
+      /**
+       * Generates a shareable URL with list data
+       */
+      function generateShareableUrl() {
+        try {
+          const shareData = items.map(item => ({
+            n: item.name,
+            q: item.qty,
+            u: item.unit,
+            d: item.done ? 1 : 0
+          }));
+          
+          const encoded = btoa(encodeURIComponent(JSON.stringify(shareData)));
+          const url = new URL(window.location.href);
+          url.search = '';
+          url.searchParams.set('list', encoded);
+          return url.toString();
+        } catch (e) {
+          console.error('Failed to generate shareable URL:', e);
+          return window.location.href;
+        }
+      }
+
+      /**
+       * Imports a list from URL parameter
+       */
+      function importFromUrl() {
+        try {
+          const url = new URL(window.location.href);
+          const listParam = url.searchParams.get('list');
+          
+          if (!listParam) return;
+          
+          const decoded = JSON.parse(decodeURIComponent(atob(listParam)));
+          
+          if (!Array.isArray(decoded)) {
+            throw new Error('Invalid list data');
+          }
+          
+          // Validate and convert to our item format
+          const importedItems = decoded
+            .filter(item => item && typeof item.n === 'string' && item.n.trim())
+            .map(item => ({
+              id: generateId(),
+              name: item.n.trim().substring(0, 100),
+              qty: typeof item.q === 'number' ? item.q : null,
+              unit: UNITS.some(u => u.value === item.u) ? item.u : 'pcs',
+              done: item.d === 1
+            }));
+          
+          if (importedItems.length > 0) {
+            // Merge with existing items, avoiding duplicates
+            importedItems.forEach(imported => {
+              const exists = items.some(i => i.name.toLowerCase() === imported.name.toLowerCase());
+              if (!exists) {
+                items.push(imported);
+              }
+            });
+            
+            saveItems();
+            renderList();
+            showToast(`Imported ${importedItems.length} item(s)`, 'success');
+          }
+          
+          // Remove URL parameters
+          window.history.replaceState({}, '', url.pathname);
+        } catch (e) {
+          console.error('Failed to import from URL:', e);
+          // Clean up invalid URL
+          const url = new URL(window.location.href);
+          url.search = '';
+          window.history.replaceState({}, '', url.pathname);
+        }
+      }
+
+      /**
+       * Opens the share modal
+       */
+      function openShareModal() {
+        elements.shareModal.classList.add('open');
+        
+        // Show native share button if available
+        if (navigator.share) {
+          elements.nativeShareBtn.classList.remove('hidden');
+        }
+        
+        // Focus the first button
+        const firstBtn = elements.shareModal.querySelector('.share-btn:not(.hidden)');
+        if (firstBtn) {
+          firstBtn.focus();
+        }
+      }
+
+      /**
+       * Closes the share modal
+       */
+      function closeShareModal() {
+        elements.shareModal.classList.remove('open');
+        elements.shareBtn.focus();
+      }
+
+      /**
+       * Native share
+       */
+      async function nativeShare() {
+        try {
+          await navigator.share({
+            title: 'My Grocery List',
+            text: generateListText(),
+            url: generateShareableUrl()
+          });
+          closeShareModal();
+        } catch (e) {
+          if (e.name !== 'AbortError') {
+            showToast('Failed to share', 'error');
+          }
+        }
+      }
+
+      /**
+       * Share via WhatsApp
+       */
+      function shareViaWhatsApp() {
+        const text = generateListText() + '\n\n' + generateShareableUrl();
+        const url = `[wa.me](https://wa.me/?text=${encodeURIComponent(text)})`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+        closeShareModal();
+      }
+
+      /**
+       * Copy list text
+       */
+      async function copyListText() {
+        try {
+          await navigator.clipboard.writeText(generateListText());
+          showToast('List copied to clipboard', 'success');
+          closeShareModal();
+        } catch (e) {
+          showToast('Failed to copy', 'error');
+        }
+      }
+
+      /**
+       * Copy share link
+       */
+      async function copyShareLink() {
+        try {
+          await navigator.clipboard.writeText(generateShareableUrl());
+          showToast('Link copied to clipboard', 'success');
+          closeShareModal();
+        } catch (e) {
+          showToast('Failed to copy', 'error');
+        }
+      }
+
+      // ===== PWA Install =====
+
+      /**
+       * Shows the install button
+       */
+      function showInstallButton() {
+        elements.installBtn.classList.remove('hidden');
+      }
+
+      /**
+       * Hides the install button
+       */
+      function hideInstallButton() {
+        elements.installBtn.classList.add('hidden');
+      }
+
+      /**
+       * Prompts the user to install the app
+       */
+      async function promptInstall() {
+        if (!deferredPrompt) return;
+        
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          hideInstallButton();
+        }
+        
+        deferredPrompt = null;
+      }
+
+      // ===== Event Listeners =====
+
+      function initEventListeners() {
+        // Form submission
+        elements.addForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = elements.itemName.value.trim();
+          const qty = elements.itemQty.value;
+          
+          if (name) {
+            if (addItem(name, qty, selectedUnit)) {
+              elements.addForm.reset();
+              elements.itemName.focus();
+            }
+          }
+        });
+
+        // Unit dropdown
+        elements.unitTrigger.addEventListener('click', toggleUnitDropdown);
+        
+        elements.unitTrigger.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            openUnitDropdown();
+          }
+        });
+
+        elements.unitDropdown.addEventListener('click', (e) => {
+          const option = e.target.closest('.select-option');
+          if (option) {
+            updateSelectedUnit(option.dataset.value);
+            closeUnitDropdown();
+            elements.unitTrigger.focus();
+          }
+        });
+
+        elements.unitDropdown.addEventListener('keydown', (e) => {
+          const options = Array.from(elements.unitDropdown.querySelectorAll('.select-option'));
+          const currentIndex = options.findIndex(opt => opt === document.activeElement);
+          
+          switch (e.key) {
+            case 'ArrowDown':
+              e.preventDefault();
+              if (currentIndex < options.length - 1) {
+                options[currentIndex + 1].focus();
+              }
+              break;
+            case 'ArrowUp':
+              e.preventDefault();
+              if (currentIndex > 0) {
+                options[currentIndex - 1].focus();
+              }
+              break;
+            case 'Enter':
+            case ' ':
+              e.preventDefault();
+              if (options[currentIndex]) {
+                updateSelectedUnit(options[currentIndex].dataset.value);
+                closeUnitDropdown();
+                elements.unitTrigger.focus();
+              }
+              break;
+            case 'Escape':
+              e.preventDefault();
+              closeUnitDropdown();
+              elements.unitTrigger.focus();
+              break;
+            case 'Tab':
+              closeUnitDropdown();
+              break;
+          }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!elements.unitTrigger.contains(e.target) && !elements.unitDropdown.contains(e.target)) {
+            closeUnitDropdown();
+          }
+        });
+
+        // List interactions (event delegation)
+        document.addEventListener('click', (e) => {
+          const checkbox = e.target.closest('.checkbox-input');
+          if (checkbox) {
+            const item = checkbox.closest('.grocery-item');
+            if (item) {
+              toggleItem(item.dataset.id);
+            }
+            return;
+          }
+
+          const deleteBtn = e.target.closest('.delete-btn');
+          if (deleteBtn) {
+            const item = deleteBtn.closest('.grocery-item');
+            if (item) {
+              deleteItem(item.dataset.id);
+            }
+            return;
+          }
+        });
+
+        // Clear all button
+        elements.clearAllBtn.addEventListener('click', clearAllItems);
+
+        // Theme toggle
+        elements.themeToggle.addEventListener('click', toggleTheme);
+
+        // Share button
+        elements.shareBtn.addEventListener('click', openShareModal);
+        elements.closeShareModal.addEventListener('click', closeShareModal);
+        
+        // Close share modal on overlay click
+        elements.shareModal.addEventListener('click', (e) => {
+          if (e.target === elements.shareModal) {
+            closeShareModal();
+          }
+        });
+
+        // Share options
+        elements.nativeShareBtn.addEventListener('click', nativeShare);
+        elements.whatsappShareBtn.addEventListener('click', shareViaWhatsApp);
+        elements.copyListBtn.addEventListener('click', copyListText);
+        elements.copyLinkBtn.addEventListener('click', copyShareLink);
+
+        // Confirm dialog
+        elements.confirmCancel.addEventListener('click', () => closeConfirm(false));
+        elements.confirmOk.addEventListener('click', () => closeConfirm(true));
+        
+        elements.confirmOverlay.addEventListener('click', (e) => {
+          if (e.target === elements.confirmOverlay) {
+            closeConfirm(false);
+          }
+        });
+
+        // Escape key handling
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            if (elements.shareModal.classList.contains('open')) {
+              closeShareModal();
+            } else if (elements.confirmOverlay.classList.contains('open')) {
+              closeConfirm(false);
+            } else if (elements.unitDropdown.classList.contains('open')) {
+              closeUnitDropdown();
+              elements.unitTrigger.focus();
+            }
+          }
+        });
+
+        // Install button
+        elements.installBtn.addEventListener('click', promptInstall);
+
+        // PWA install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPrompt = e;
+          showInstallButton();
+        });
+
+        window.addEventListener('appinstalled', () => {
+          hideInstallButton();
+          deferredPrompt = null;
+          showToast('App installed successfully!', 'success');
+        });
+      }
+
+      // ===== Service Worker Registration =====
+
+      function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', async () => {
+            try {
+              const registration = await navigator.serviceWorker.register('sw.js');
+              console.log('ServiceWorker registered:', registration.scope);
+            } catch (error) {
+              console.error('ServiceWorker registration failed:', error);
+            }
+          });
+        }
+      }
+
+      // ===== Initialization =====
+
+      function init() {
+        initTheme();
+        populateUnitDropdown();
+        loadItems();
+        importFromUrl();
+        renderList();
+        initEventListeners();
+        registerServiceWorker();
+      }
+
+      // Start the app
+      init();
+    })();
+  </script>
+</body>
+</html>
