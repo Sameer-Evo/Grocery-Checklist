@@ -1,18 +1,14 @@
 {
   "name": "Grocery Checklist",
   "short_name": "Grocery List",
-  "description": "A simple, fast grocery checklist app that works offline",
-
-  "id": "/<repo-name>/",
-  "start_url": "/<repo-name>/",
-  "scope": "/<repo-name>/",
-
+  "description": "A simple and fast grocery checklist app that works offline.",
+  "id": "/Grocery-Checklist/",
+  "start_url": "/Grocery-Checklist/",
+  "scope": "/Grocery-Checklist/",
   "display": "standalone",
   "orientation": "portrait-primary",
-
   "background_color": "#f8fafc",
   "theme_color": "#4f46e5",
-
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -27,19 +23,17 @@
       "purpose": "any maskable"
     }
   ],
-
   "categories": [
     "shopping",
     "utilities",
     "productivity"
   ],
-
   "shortcuts": [
     {
       "name": "Add Item",
       "short_name": "Add",
       "description": "Quickly add a new grocery item",
-      "url": "/<repo-name>/?action=add",
+      "url": "/Grocery-Checklist/?action=add",
       "icons": [
         {
           "src": "icons/icon-192.png",
