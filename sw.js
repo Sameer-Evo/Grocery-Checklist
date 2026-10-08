@@ -1,98 +1,114 @@
-const CACHE_NAME = 'grocery-checklist-v1';
+const CACHE_NAME = "grocery-checklist-v2";
+
+const BASE_PATH = "/Grocery-Checklist/";
+
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192.ico',
-  '/icons/icon-512.ico'
+  BASE_PATH,
+  `${BASE_PATH}index.html`,
+  `${BASE_PATH}manifest.json`,
+  `${BASE_PATH}icons/icon-192.png`,
+  `${BASE_PATH}icons/icon-512.png`
 ];
 
-// Install event - cache static assets
-self.addEventListener('install', (event) => {
+
+// ─────────────────────────────────────────────
+// INSTALL
+// ─────────────────────────────────────────────
+
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+
+// ─────────────────────────────────────────────
+// ACTIVATE
+// ─────────────────────────────────────────────
+
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
+    caches
+      .keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
             .filter((name) => name !== CACHE_NAME)
-            .map((name) => {
-              console.log('Deleting old cache:', name);
-              return caches.delete(name);
-            })
+            .map((name) => caches.delete(name))
         );
       })
       .then(() => self.clients.claim())
   );
 });
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
+
+// ─────────────────────────────────────────────
+// FETCH
+// ─────────────────────────────────────────────
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") {
     return;
   }
 
-  // Skip cross-origin requests
+  // Only handle requests from this origin.
   if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          // Return cached version
-          return cachedResponse;
-        }
+    caches.match(event.request).then((cachedResponse) => {
+      // Return cached resource if available.
+      if (cachedResponse) {
+        return cachedResponse;
+      }
 
-        // Not in cache - fetch from network
-        return fetch(event.request)
-          .then((networkResponse) => {
-            // Don't cache non-successful responses
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-
-            // Clone the response - one for cache, one to return
-            const responseToCache = networkResponse.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
+      // Otherwise request it from the network.
+      return fetch(event.request)
+        .then((networkResponse) => {
+          // Don't cache invalid responses.
+          if (
+            !networkResponse ||
+            networkResponse.status !== 200 ||
+            networkResponse.type !== "basic"
+          ) {
             return networkResponse;
-          })
-          .catch(() => {
-            // Network failed and not in cache
-            // Return offline fallback for navigation requests
-            if (event.request.mode === 'navigate') {
-              return caches.match('/index.html');
-            }
-            return new Response('Offline', {
-              status: 503,
-              statusText: 'Service Unavailable'
-            });
+          }
+
+          const responseToCache = networkResponse.clone();
+
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
           });
-      })
+
+          return networkResponse;
+        })
+        .catch(() => {
+          // If navigation fails while offline,
+          // return the cached application shell.
+          if (event.request.mode === "navigate") {
+            return caches.match(`${BASE_PATH}index.html`);
+          }
+
+          return new Response("Offline", {
+            status: 503,
+            statusText: "Service Unavailable"
+          });
+        });
+    })
   );
 });
 
-// Handle messages from the main app
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+
+// ─────────────────────────────────────────────
+// SKIP WAITING
+// ─────────────────────────────────────────────
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
 });
